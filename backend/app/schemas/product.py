@@ -2,7 +2,6 @@ from datetime import datetime
 from typing import Optional
 
 from pydantic import BaseModel, Field
-from pydantic.mypy import from_attributes_callback
 
 from app.schemas.category import CategoryResponse
 
