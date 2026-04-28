@@ -1,15 +1,15 @@
 from pydantic import BaseModel, Field
 
 
-class CategoryBase(BaseModel):
+class AgeBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
 
 
-class CategoryCreate(CategoryBase):
+class AgeCreate(AgeBase):
     pass
 
 
-class CategoryResponse(CategoryBase):
+class AgeResponse(AgeBase):
     id: int
 
     class Config:
