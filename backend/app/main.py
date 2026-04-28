@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .database import init_db
-from .api import products_router, categories_router, cart_router
+from .api import entities_router
 
 app = FastAPI(
     title=settings.app_name,
@@ -19,9 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(products_router)
-app.include_router(categories_router)
-app.include_router(cart_router)
+app.include_router(entities_router)
 
 @app.on_event('startup')
 def on_startup():
