@@ -7,8 +7,8 @@ class Category(Base):
     __tablename__ = 'categories'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String, unique=True, nullable=False, index=True)
-    slug = Column(String, unique=True, nullable=False, index=True)
+    name = Column(String(255), unique=True, nullable=False, index=True)
+    slug = Column(String(255), unique=True, nullable=False, index=True)
 
     products = relationship('Product', back_populates='category')
 

@@ -9,10 +9,10 @@ class Product(Base):
     __tablename__ = 'products'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String, nullable=False, index=True)
+    name = Column(String(255), nullable=False, index=True)
     price = Column(Float, nullable=False)
     description = Column(Text)
-    image_url = Column(String)
+    image_url = Column(String(500))
     category_id = Column(Integer, ForeignKey('categories.id'), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
