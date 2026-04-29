@@ -18,7 +18,7 @@ from app.schemas.user import UserCreate, UserResponse
 from app.services.crud import CRUDService
 
 
-router = APIRouter(prefix='/api', tags=['entities'])
+router = APIRouter(prefix='/api/entities', tags=['entities'])
 
 
 def _register_crud(entity: str, model, create_schema, response_schema):

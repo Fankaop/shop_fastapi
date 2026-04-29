@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .database import init_db
-from .api import entities_router
+from .api import api_router
 
 app = FastAPI(
     title=settings.app_name,
@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(entities_router)
+app.include_router(api_router)
 
 @app.on_event('startup')
 def on_startup():

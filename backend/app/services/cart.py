@@ -10,41 +10,47 @@ from app.services.product import ProductRepository
 
 
 class CartService:
+    _cart_data: Dict[int, int] = {}
+
     def __init__(self, db: Session) -> None:
         self.product_repository = ProductRepository(db)
 
-    def add_to_cart(self, cart_data: Dict[int, int], item: CartItemCreate) -> Dict[int, int]:
+    def add_to_cart(self, item: CartItemCreate) -> Dict[int, int]:
         product = self.product_repository.get_by_id(item.product_id)
         if not product:
             raise HTTPException(
                 status_code=HTTP_404_NOT_FOUND,
                 detail=f'Product not found id with {item.product_id}'
             )
-        if item.product_id in cart_data:
-            cart_data[item.product_id] += item.quantity
+        if item.product_id in self._cart_data:
+            self._cart_data[item.product_id] += item.quantity
         else:
-            cart_data[item.product_id] = item.quantity
-        return cart_data
+            self._cart_data[item.product_id] = item.quantity
+        return self._cart_data
 
-    def cart_item_update(self, cart_data: Dict[int, int], item: CartItemUpdate) -> Dict[int, int]:
-        if item.product_id not in cart_data:
+    def cart_item_update(self, item: CartItemUpdate) -> Dict[int, int]:
+        if item.product_id not in self._cart_data:
             raise HTTPException(
                 status_code=HTTP_404_NOT_FOUND,
                 detail=f'Product {item.product_id} not found in cart'
             )
-        cart_data[item.product_id] = item.quantity
-        return cart_data
+        self._cart_data[item.product_id] = item.quantity
+        return self._cart_data
 
-    def remove_from_cart(self, cart_data: Dict[int, int], product_id: int) -> Dict[int, int]:
-        if product_id not in cart_data:
+    def remove_from_cart(self, product_id: int) -> Dict[int, int]:
+        if product_id not in self._cart_data:
             raise HTTPException(
                 status_code=HTTP_404_NOT_FOUND,
                 detail=f'Product id{product_id} not found in cart'
             )
-        del cart_data[product_id]
-        return cart_data
+        del self._cart_data[product_id]
+        return self._cart_data
 
-    def get_cart_details(self, cart_data: Dict[int, int]) -> CartResponse:
+    def get_raw_cart(self) -> Dict[int, int]:
+        return self._cart_data
+
+    def get_cart_details(self, cart_data: Dict[int, int] | None = None) -> CartResponse:
+        cart_data = cart_data if cart_data is not None else self._cart_data
         if not cart_data:
             return CartResponse(items=[], total=0.0, items_count=0)
 
