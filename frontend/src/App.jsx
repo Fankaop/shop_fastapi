@@ -51,6 +51,15 @@ function App() {
   const [cartLoading, setCartLoading] = useState(false)
   const [error, setError] = useState('')
   const [addedProductId, setAddedProductId] = useState(null)
+  const [authMode, setAuthMode] = useState('login')
+  const [currentUser, setCurrentUser] = useState(null)
+  const [authLoading, setAuthLoading] = useState(false)
+  const [authForm, setAuthForm] = useState({
+    login: '',
+    phone: '',
+    email: '',
+    password: '',
+  })
   const catalogRef = useRef(null)
 
   const loadProductsByCategory = async (categoryId) => {
@@ -173,6 +182,37 @@ function App() {
     }
   }
 
+  const handleAuthSubmit = async (e) => {
+    e.preventDefault()
+    setError('')
+    setAuthLoading(true)
+
+    try {
+      if (authMode === 'register') {
+        const data = await apiRequest('/api/auth/register', {
+          method: 'POST',
+          body: JSON.stringify(authForm),
+        })
+        setCurrentUser(data.user ?? null)
+        setView('catalog')
+      } else {
+        const data = await apiRequest('/api/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({
+            email: authForm.email,
+            password: authForm.password,
+          }),
+        })
+        setCurrentUser(data.user ?? null)
+        setView('catalog')
+      }
+    } catch (err) {
+      setError(err.message || 'Ошибка авторизации')
+    } finally {
+      setAuthLoading(false)
+    }
+  }
+
   const updateQuantity = async (productId, nextQuantity) => {
     setError('')
     setCartLoading(true)
@@ -285,6 +325,13 @@ function App() {
               return
             }
 
+            if (view === 'auth') {
+              setView('catalog')
+              setSelectedProductId(null)
+              window.scrollTo(0, 0)
+              return
+            }
+
             setView('catalog')
             setSelectedProductId(null)
             animatePageScroll(0)
@@ -292,13 +339,98 @@ function App() {
         >
           <h1>Shop Frontend</h1>
         </button>
-        <button type="button" className="cart-badge" onClick={() => setView('cart')}>
-          В корзине: {cartCount}
+        <button
+          type="button"
+          className="cart-badge"
+          onClick={() => setView('auth')}
+        >
+          {currentUser ? 'Профиль' : 'Войти'}
         </button>
       </header>
 
       {loading && <p>Загрузка...</p>}
       {error && <p className="error">Ошибка: {error}</p>}
+
+      {view === 'auth' && (
+        <section className="cart-preview auth-page">
+          <button type="button" className="link-btn cart-back-btn" onClick={() => setView('catalog')}>
+            ← Назад к каталогу
+          </button>
+
+          <h2 className="cart-title">{currentUser ? 'Профиль' : 'Авторизация'}</h2>
+
+          {currentUser ? (
+            <div className="cart-empty-state">
+              <p><strong>Логин:</strong> {currentUser.login}</p>
+              <p><strong>Телефон:</strong> {currentUser.phone}</p>
+              <p><strong>Email:</strong> {currentUser.email}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setCurrentUser(null)
+                  setAuthMode('login')
+                }}
+              >
+                Выйти
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleAuthSubmit} className="toolbar mvp-toolbar auth-form-shell">
+              <div className="toolbar-head">
+                <h3>{authMode === 'register' ? 'Регистрация' : 'Вход'}</h3>
+              </div>
+              <div className="toolbar-controls auth-controls" style={{ gridTemplateColumns: '1fr' }}>
+                {authMode === 'register' && (
+                  <input
+                    className="auth-input"
+                    type="text"
+                    placeholder="Логин"
+                    value={authForm.login}
+                    onChange={(e) => setAuthForm((prev) => ({ ...prev, login: e.target.value }))}
+                    required
+                  />
+                )}
+                {authMode === 'register' && (
+                  <input
+                    className="auth-input"
+                    type="text"
+                    placeholder="Телефон"
+                    value={authForm.phone}
+                    onChange={(e) => setAuthForm((prev) => ({ ...prev, phone: e.target.value }))}
+                    required
+                  />
+                )}
+                <input
+                  className="auth-input"
+                  type="email"
+                  placeholder="Email"
+                  value={authForm.email}
+                  onChange={(e) => setAuthForm((prev) => ({ ...prev, email: e.target.value }))}
+                  required
+                />
+                <input
+                  className="auth-input"
+                  type="password"
+                  placeholder="Пароль"
+                  value={authForm.password}
+                  onChange={(e) => setAuthForm((prev) => ({ ...prev, password: e.target.value }))}
+                  required
+                />
+                <button className="auth-action-btn" type="submit" disabled={authLoading}>
+                  {authMode === 'register' ? 'Зарегистрироваться' : 'Войти'}
+                </button>
+                <button
+                  className="auth-switch-btn"
+                  type="button"
+                  onClick={() => setAuthMode((prev) => (prev === 'register' ? 'login' : 'register'))}
+                >
+                  {authMode === 'register' ? 'У меня уже есть аккаунт' : 'Создать аккаунт'}
+                </button>
+              </div>
+            </form>
+          )}
+        </section>
+      )}
 
       {view === 'catalog' && !selectedProduct && (
         <>
@@ -500,6 +632,16 @@ function App() {
             </>
           )}
         </section>
+      )}
+
+      {view !== 'cart' && view !== 'auth' && (
+        <button
+          type="button"
+          className="floating-cart-btn"
+          onClick={() => setView('cart')}
+        >
+          Корзина: {cartCount}
+        </button>
       )}
     </main>
   )

@@ -79,6 +79,34 @@
   outline-offset: 2px;
 }
 
+.floating-cart-btn {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 40;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 15px 22px;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: 0 14px 34px rgba(170, 59, 255, 0.38);
+  cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
+}
+
+.floating-cart-btn:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 20px 42px rgba(170, 59, 255, 0.46);
+  filter: saturate(1.08);
+}
+
+.floating-cart-btn:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
 .toolbar {
   display: flex;
   gap: 12px;
@@ -321,6 +349,90 @@
     radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--accent-bg) 40%, transparent), transparent 45%),
     color-mix(in srgb, var(--bg) 95%, var(--accent) 5%);
   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+}
+
+.auth-page {
+  position: relative;
+  overflow: hidden;
+  min-height: calc(100svh - 140px);
+  isolation: isolate;
+}
+
+.auth-page::before,
+.auth-page::after {
+  content: '';
+  position: absolute;
+  inset: -25%;
+  z-index: -2;
+  background:
+    radial-gradient(circle at 20% 35%, color-mix(in srgb, var(--accent) 42%, transparent), transparent 52%),
+    radial-gradient(circle at 80% 68%, color-mix(in srgb, #7c8cff 36%, transparent), transparent 48%),
+    radial-gradient(circle at 55% 20%, color-mix(in srgb, #3bc6ff 24%, transparent), transparent 44%);
+  animation: authWaveMove 14s ease-in-out infinite alternate;
+}
+
+.auth-page::after {
+  z-index: -1;
+  opacity: 0.52;
+  filter: blur(28px);
+  animation-duration: 18s;
+}
+
+.auth-form-shell {
+  max-width: 620px;
+  margin: 14px auto 0;
+  padding: 18px;
+  border: 1px solid color-mix(in srgb, var(--accent-border) 56%, var(--border) 44%);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--accent-bg) 48%, var(--bg) 52%), color-mix(in srgb, var(--bg) 88%, var(--accent) 12%));
+  box-shadow:
+    0 22px 48px rgba(44, 12, 84, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.auth-controls {
+  gap: 12px;
+}
+
+.auth-input {
+  min-height: 46px;
+  font-size: 15px;
+  border: 1px solid color-mix(in srgb, var(--accent-border) 55%, var(--border) 45%) !important;
+  background: color-mix(in srgb, var(--bg) 90%, var(--accent) 10%) !important;
+  border-radius: 12px !important;
+}
+
+.auth-input:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 75%, #ffffff 25%);
+  outline-offset: 2px;
+}
+
+.auth-action-btn,
+.auth-switch-btn {
+  min-height: 48px;
+  width: fit-content;
+  min-width: 220px;
+  justify-self: center;
+  padding: 0 20px !important;
+  border-radius: 12px !important;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.auth-action-btn {
+  background: linear-gradient(120deg, var(--accent), color-mix(in srgb, var(--accent) 65%, #6f9fff 35%)) !important;
+  box-shadow: 0 12px 26px rgba(127, 68, 255, 0.32);
+}
+
+.auth-switch-btn {
+  background: color-mix(in srgb, var(--accent-bg) 76%, var(--bg) 24%) !important;
+  color: var(--accent) !important;
+  border: 1px solid color-mix(in srgb, var(--accent-border) 58%, var(--border) 42%) !important;
+}
+
+.auth-action-btn:hover,
+.auth-switch-btn:hover {
+  transform: translateY(-2px) scale(1.01);
 }
 
 .cart-preview h2 {
@@ -652,6 +764,18 @@
   100% {
     opacity: 0;
     transform: translateX(-50%) scale(0.98);
+  }
+}
+
+@keyframes authWaveMove {
+  0% {
+    transform: translate3d(-2%, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(2%, -2%, 0) scale(1.04);
+  }
+  100% {
+    transform: translate3d(-1%, 2%, 0) scale(1.02);
   }
 }
 
