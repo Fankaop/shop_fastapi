@@ -53,6 +53,15 @@ function App() {
   const [addedProductId, setAddedProductId] = useState(null)
   const catalogRef = useRef(null)
 
+  const loadProductsByCategory = async (categoryId) => {
+    const path = categoryId === 'all'
+      ? '/api/products'
+      : `/api/products/category/${categoryId}`
+
+    const productsData = await apiRequest(path)
+    setProducts(productsData.products ?? [])
+  }
+
   const loadInitialData = async () => {
     setLoading(true)
     setError('')
@@ -92,24 +101,21 @@ function App() {
     return () => clearTimeout(timerId)
   }, [])
 
-  const visibleProducts = useMemo(() => {
-    let filtered = products
-
-    if (selectedCategoryId !== 'all') {
-      filtered = filtered.filter((product) => product.category_id === Number(selectedCategoryId))
+  useEffect(() => {
+    const loadByCategory = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        await loadProductsByCategory(selectedCategoryId)
+      } catch (err) {
+        setError(err.message || 'Не удалось загрузить товары по категории')
+      } finally {
+        setLoading(false)
+      }
     }
 
-    const query = search.trim().toLowerCase()
-    if (query) {
-      filtered = filtered.filter((product) => {
-        const name = (product.name ?? '').toLowerCase()
-        const description = (product.description ?? '').toLowerCase()
-        return name.includes(query) || description.includes(query)
-      })
-    }
-
-    return filtered
-  }, [products, selectedCategoryId, search])
+    loadByCategory()
+  }, [selectedCategoryId])
 
   const cartCount = useMemo(() => {
     if (cart && typeof cart === 'object') {
@@ -308,7 +314,7 @@ function App() {
               <div className="toolbar-head">
                 <h3>Фильтры</h3>
                 <div className="toolbar-chips">
-                  <span>{visibleProducts.length} товаров</span>
+                  <span>{products.length} товаров</span>
                   <span>{categories.length} категорий</span>
                 </div>
               </div>
@@ -333,12 +339,17 @@ function App() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-                <button type="button" onClick={loadInitialData}>Обновить</button>
+                <button
+                  type="button"
+                  onClick={() => loadProductsByCategory(selectedCategoryId)}
+                >
+                  Обновить
+                </button>
               </div>
             </section>
 
             <section className="products-grid">
-              {visibleProducts.map((product) => (
+              {products.map((product) => (
                 <article
                   className="product-card clickable"
                   key={product.id}
@@ -389,7 +400,7 @@ function App() {
               ))}
             </section>
 
-            {!loading && visibleProducts.length === 0 && <p>Товары не найдены для выбранной категории.</p>}
+            {!loading && products.length === 0 && <p>Товары не найдены для выбранной категории.</p>}
           </section>
         </>
       )}
