@@ -360,19 +360,36 @@ function App() {
           <h2 className="cart-title">{currentUser ? 'Профиль' : 'Авторизация'}</h2>
 
           {currentUser ? (
-            <div className="cart-empty-state">
-              <p><strong>Логин:</strong> {currentUser.login}</p>
-              <p><strong>Телефон:</strong> {currentUser.phone}</p>
-              <p><strong>Email:</strong> {currentUser.email}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setCurrentUser(null)
-                  setAuthMode('login')
-                }}
-              >
-                Выйти
-              </button>
+            <div className="profile-card">
+              <div className="profile-top">
+                <div className="profile-avatar" aria-hidden="true">
+                  {String(currentUser.login || currentUser.email || 'U').slice(0, 1).toUpperCase()}
+                </div>
+                <div>
+                  <p className="profile-kicker">Личный кабинет</p>
+                  <h3 className="profile-name">{currentUser.login}</h3>
+                </div>
+              </div>
+
+              <div className="profile-grid">
+                <p><strong>Логин:</strong> {currentUser.login}</p>
+                <p><strong>Телефон:</strong> {currentUser.phone}</p>
+                <p><strong>Email:</strong> {currentUser.email}</p>
+                <p><strong>Статус:</strong> Активный</p>
+              </div>
+
+              <div className="profile-actions">
+                <button
+                  type="button"
+                  className="profile-logout-btn"
+                  onClick={() => {
+                    setCurrentUser(null)
+                    setAuthMode('login')
+                  }}
+                >
+                  Выйти
+                </button>
+              </div>
             </div>
           ) : (
             <form onSubmit={handleAuthSubmit} className="toolbar mvp-toolbar auth-form-shell">

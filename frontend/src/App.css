@@ -513,6 +513,87 @@
   transform: translateY(-2px) scale(1.01);
 }
 
+.profile-card {
+  max-width: 700px;
+  margin: 10px auto 0;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--accent-border) 56%, var(--border) 44%);
+  background:
+    radial-gradient(circle at 0% 0%, color-mix(in srgb, var(--accent-bg) 46%, transparent), transparent 42%),
+    linear-gradient(140deg, color-mix(in srgb, var(--bg) 90%, var(--accent) 10%), color-mix(in srgb, var(--bg) 82%, var(--accent) 18%));
+  box-shadow: 0 20px 42px rgba(40, 18, 74, 0.2);
+}
+
+.profile-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.profile-avatar {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  color: #fff;
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, #7e93ff 62%, var(--accent) 38%));
+  box-shadow: 0 10px 24px rgba(122, 68, 233, 0.34);
+}
+
+.profile-kicker {
+  margin: 0 0 2px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text) 74%, var(--accent) 26%);
+}
+
+.profile-name {
+  margin: 0;
+  font-size: 24px;
+  color: var(--text-h);
+}
+
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.profile-grid p {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent-border) 40%, var(--border) 60%);
+  background: color-mix(in srgb, var(--bg) 88%, var(--accent) 12%);
+}
+
+.profile-actions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.profile-logout-btn {
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid color-mix(in srgb, #ff5f8f 45%, var(--border) 55%);
+  border-radius: 12px;
+  background: color-mix(in srgb, #ff5f8f 18%, var(--bg) 82%);
+  color: #ff4b81;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profile-logout-btn:hover {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, #ff5f8f 28%, var(--bg) 72%);
+}
+
 .cart-preview h2 {
   margin: 8px 0 14px;
 }
