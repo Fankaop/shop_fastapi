@@ -43,6 +43,8 @@ function App() {
   const [genders, setGenders] = useState([])
   const [prices, setPrices] = useState([])
   const [products, setProducts] = useState([])
+  const [orders, setOrders] = useState([])
+  const [productsInOrders, setProductsInOrders] = useState([])
   const [cart, setCart] = useState({})
   const [selectedCategoryId, setSelectedCategoryId] = useState('all')
   const [search, setSearch] = useState('')
@@ -54,13 +56,46 @@ function App() {
   const [authMode, setAuthMode] = useState('login')
   const [currentUser, setCurrentUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(false)
+  const [adminLoading, setAdminLoading] = useState(false)
+  const [adminMessage, setAdminMessage] = useState('')
   const [authForm, setAuthForm] = useState({
     login: '',
     phone: '',
     email: '',
     password: '',
+    is_admin: false,
   })
+  const [adminForms, setAdminForms] = useState({
+    category: { name: '' },
+    size: { name: '' },
+    age: { name: '' },
+    gender: { name: '' },
+    product: {
+      name: '',
+      description: '',
+      image: '',
+      available_quantity: 0,
+      category_id: '',
+      age_id: '',
+      gender_id: '',
+      size_id: '',
+    },
+    price: { product_id: '', price: '' },
+  })
+  const [checkoutLoading, setCheckoutLoading] = useState(false)
+  const [checkoutSuccess, setCheckoutSuccess] = useState('')
+  const [checkoutDraftItems, setCheckoutDraftItems] = useState([])
   const catalogRef = useRef(null)
+
+  const setAdminField = (section, field, value) => {
+    setAdminForms((prev) => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: value,
+      },
+    }))
+  }
 
   const loadProductsByCategory = async (categoryId) => {
     const path = categoryId === 'all'
@@ -81,11 +116,13 @@ function App() {
         apiRequest('/api/cart/raw'),
       ])
 
-      const [sizesData, agesData, gendersData, pricesData] = await Promise.all([
+      const [sizesData, agesData, gendersData, pricesData, ordersData, productsInOrdersData] = await Promise.all([
         apiRequest('/api/entities/sizes'),
         apiRequest('/api/entities/ages'),
         apiRequest('/api/entities/genders'),
         apiRequest('/api/entities/prices'),
+        apiRequest('/api/entities/orders'),
+        apiRequest('/api/entities/products-in-orders'),
       ])
 
       setCategories(categoriesData)
@@ -93,6 +130,8 @@ function App() {
       setAges(agesData)
       setGenders(gendersData)
       setPrices(pricesData)
+      setOrders(ordersData)
+      setProductsInOrders(productsInOrdersData)
       setProducts(productsData.products ?? [])
       setCart(cartData.cart ?? {})
     } catch (err) {
@@ -238,6 +277,168 @@ function App() {
     }
   }
 
+  const createEntity = async (entity, payload) => {
+    setError('')
+    setAdminMessage('')
+    setAdminLoading(true)
+    try {
+      await apiRequest(`/api/entities/${entity}`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      })
+      setAdminMessage(`Создано: ${entity}`)
+      await loadInitialData()
+    } catch (err) {
+      setError(err.message || `Не удалось создать ${entity}`)
+    } finally {
+      setAdminLoading(false)
+    }
+  }
+
+  const createProduct = async (e) => {
+    e.preventDefault()
+    const payload = {
+      ...adminForms.product,
+      available_quantity: Number(adminForms.product.available_quantity),
+      category_id: Number(adminForms.product.category_id),
+      age_id: Number(adminForms.product.age_id),
+      gender_id: Number(adminForms.product.gender_id),
+      size_id: Number(adminForms.product.size_id),
+    }
+    await createEntity('products', payload)
+  }
+
+  const createPrice = async (e) => {
+    e.preventDefault()
+    const payload = {
+      product_id: Number(adminForms.price.product_id),
+      price: Number(adminForms.price.price),
+    }
+    await createEntity('prices', payload)
+  }
+
+  const openCheckoutPage = () => {
+    if (cartItems.length === 0) return
+    setCheckoutSuccess('')
+    setCheckoutDraftItems(
+      cartItems.map((item) => ({
+        product_id: item.product.id,
+        name: item.product.name,
+        price: priceMap[item.product.id] || 0,
+        quantity: item.quantity,
+      })),
+    )
+    setView('checkout')
+  }
+
+  const updateCheckoutItemQty = (productId, quantity) => {
+    setCheckoutDraftItems((prev) => prev
+      .map((item) => (item.product_id === productId ? { ...item, quantity: Math.max(1, Number(quantity || 1)) } : item)))
+  }
+
+  const checkoutTotalDraft = checkoutDraftItems.reduce(
+    (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+    0,
+  )
+
+  const submitCheckoutOrder = async () => {
+    if (checkoutDraftItems.length === 0) return
+    setError('')
+    setCheckoutSuccess('')
+    setCheckoutLoading(true)
+    try {
+      const order = await apiRequest('/api/entities/orders', {
+        method: 'POST',
+        body: JSON.stringify({}),
+      })
+
+      await Promise.all(checkoutDraftItems.map((item) => apiRequest('/api/entities/products-in-orders', {
+        method: 'POST',
+        body: JSON.stringify({
+          product_id: item.product_id,
+          order_id: order.id,
+          total_products_in_order: item.quantity,
+          total_order_amount: Number(item.price || 0) * Number(item.quantity || 0),
+        }),
+      })))
+
+      await Promise.all(checkoutDraftItems.map((item) => apiRequest(`/api/cart/remove/${item.product_id}`, {
+        method: 'DELETE',
+      })))
+
+      setCart({})
+      setCheckoutDraftItems([])
+      setCheckoutSuccess(`Заказ #${order.id} успешно оформлен`)
+      setView('checkout')
+    } catch (err) {
+      setError(err.message || 'Не удалось оформить заказ')
+    } finally {
+      setCheckoutLoading(false)
+    }
+  }
+
+  const deleteProduct = async (productId) => {
+    if (!productId) return
+    setError('')
+    setAdminMessage('')
+    setAdminLoading(true)
+    try {
+      await apiRequest(`/api/entities/products/${productId}`, {
+        method: 'DELETE',
+      })
+      setAdminMessage(`Товар #${productId} удалён`)
+      setAdminForms((prev) => ({
+        ...prev,
+        price: {
+          ...prev.price,
+          product_id: prev.price.product_id === String(productId) ? '' : prev.price.product_id,
+        },
+      }))
+      await loadInitialData()
+    } catch (err) {
+      setError(err.message || 'Не удалось удалить товар')
+    } finally {
+      setAdminLoading(false)
+    }
+  }
+
+  const deleteOrder = async (orderId) => {
+    setError('')
+    setAdminMessage('')
+    setAdminLoading(true)
+    try {
+      const linkedRows = productsInOrders.filter((row) => row.order_id === orderId)
+      await Promise.all(linkedRows.map((row) => apiRequest(`/api/entities/products-in-orders/${row.id}`, {
+        method: 'DELETE',
+      })))
+      await apiRequest(`/api/entities/orders/${orderId}`, {
+        method: 'DELETE',
+      })
+      setAdminMessage(`Заказ #${orderId} удалён`)
+      await loadInitialData()
+    } catch (err) {
+      setError(err.message || 'Не удалось удалить заказ')
+    } finally {
+      setAdminLoading(false)
+    }
+  }
+
+  const ordersWithItems = useMemo(() => orders
+    .map((order) => {
+      const items = productsInOrders
+        .filter((row) => row.order_id === order.id)
+        .map((row) => {
+          const product = products.find((p) => p.id === row.product_id)
+          return {
+            ...row,
+            product_name: product?.name ?? `Товар #${row.product_id}`,
+          }
+        })
+      const total = items.reduce((sum, row) => sum + Number(row.total_order_amount || 0), 0)
+      return { ...order, items, total }
+    })
+    .sort((a, b) => b.id - a.id), [orders, productsInOrders, products])
+
   const cartItems = useMemo(() => {
     if (!cart || typeof cart !== 'object') return []
 
@@ -346,6 +547,15 @@ function App() {
         >
           {currentUser ? 'Профиль' : 'Войти'}
         </button>
+        {currentUser?.is_admin && (
+          <button
+            type="button"
+            className="cart-badge"
+            onClick={() => setView('admin')}
+          >
+            Админка
+          </button>
+        )}
       </header>
 
       {loading && <p>Загрузка...</p>}
@@ -433,6 +643,16 @@ function App() {
                   onChange={(e) => setAuthForm((prev) => ({ ...prev, password: e.target.value }))}
                   required
                 />
+                {authMode === 'register' && (
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="checkbox"
+                      checked={authForm.is_admin}
+                      onChange={(e) => setAuthForm((prev) => ({ ...prev, is_admin: e.target.checked }))}
+                    />
+                    Зарегистрировать как администратора
+                  </label>
+                )}
                 <button className="auth-action-btn" type="submit" disabled={authLoading}>
                   {authMode === 'register' ? 'Зарегистрироваться' : 'Войти'}
                 </button>
@@ -446,6 +666,161 @@ function App() {
               </div>
             </form>
           )}
+        </section>
+      )}
+
+      {view === 'admin' && currentUser?.is_admin && (
+        <section className="cart-preview auth-page">
+          <button type="button" className="link-btn cart-back-btn" onClick={() => setView('catalog')}>
+            ← Назад к каталогу
+          </button>
+          <h2 className="cart-title">Админка</h2>
+          {adminMessage && <p>{adminMessage}</p>}
+
+          <div className="toolbar mvp-toolbar" style={{ marginBottom: 16 }}>
+            <div className="toolbar-head"><h3>Справочники</h3></div>
+            <div className="toolbar-controls" style={{ gridTemplateColumns: 'repeat(4, minmax(180px, 1fr))' }}>
+              <input placeholder="Новая категория" value={adminForms.category.name} onChange={(e) => setAdminField('category', 'name', e.target.value)} />
+              <button type="button" disabled={adminLoading} onClick={() => createEntity('categories', adminForms.category)}>Создать категорию</button>
+              <input placeholder="Новый размер" value={adminForms.size.name} onChange={(e) => setAdminField('size', 'name', e.target.value)} />
+              <button type="button" disabled={adminLoading} onClick={() => createEntity('sizes', adminForms.size)}>Создать размер</button>
+              <input placeholder="Новый возраст" value={adminForms.age.name} onChange={(e) => setAdminField('age', 'name', e.target.value)} />
+              <button type="button" disabled={adminLoading} onClick={() => createEntity('ages', adminForms.age)}>Создать возраст</button>
+              <input placeholder="Новый пол" value={adminForms.gender.name} onChange={(e) => setAdminField('gender', 'name', e.target.value)} />
+              <button type="button" disabled={adminLoading} onClick={() => createEntity('genders', adminForms.gender)}>Создать пол</button>
+            </div>
+          </div>
+
+          <form className="toolbar mvp-toolbar" onSubmit={createProduct} style={{ marginBottom: 16 }}>
+            <div className="toolbar-head"><h3>Создать товар</h3></div>
+            <div className="toolbar-controls" style={{ gridTemplateColumns: 'repeat(2, minmax(220px, 1fr))' }}>
+              <input required placeholder="Название" value={adminForms.product.name} onChange={(e) => setAdminField('product', 'name', e.target.value)} />
+              <input placeholder="Описание" value={adminForms.product.description} onChange={(e) => setAdminField('product', 'description', e.target.value)} />
+              <input placeholder="URL картинки" value={adminForms.product.image} onChange={(e) => setAdminField('product', 'image', e.target.value)} />
+              <input required type="number" min="0" placeholder="Остаток" value={adminForms.product.available_quantity} onChange={(e) => setAdminField('product', 'available_quantity', e.target.value)} />
+              <select required value={adminForms.product.category_id} onChange={(e) => setAdminField('product', 'category_id', e.target.value)}><option value="">Категория</option>{categories.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+              <select required value={adminForms.product.size_id} onChange={(e) => setAdminField('product', 'size_id', e.target.value)}><option value="">Размер</option>{sizes.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+              <select required value={adminForms.product.age_id} onChange={(e) => setAdminField('product', 'age_id', e.target.value)}><option value="">Возраст</option>{ages.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+              <select required value={adminForms.product.gender_id} onChange={(e) => setAdminField('product', 'gender_id', e.target.value)}><option value="">Пол</option>{genders.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
+              <button type="submit" disabled={adminLoading}>Создать товар</button>
+            </div>
+          </form>
+
+          <form className="toolbar mvp-toolbar" onSubmit={createPrice}>
+            <div className="toolbar-head"><h3>Назначить цену</h3></div>
+            <div className="toolbar-controls" style={{ gridTemplateColumns: 'minmax(220px, 1fr) minmax(180px, 220px) 200px' }}>
+              <select required value={adminForms.price.product_id} onChange={(e) => setAdminField('price', 'product_id', e.target.value)}>
+                <option value="">Товар</option>
+                {products.map((p) => <option key={p.id} value={p.id}>{p.name} (#{p.id})</option>)}
+              </select>
+              <input required type="number" min="0.01" step="0.01" placeholder="Цена" value={adminForms.price.price} onChange={(e) => setAdminField('price', 'price', e.target.value)} />
+              <button type="submit" disabled={adminLoading}>Создать цену</button>
+            </div>
+          </form>
+
+          <div className="toolbar mvp-toolbar" style={{ marginTop: 16 }}>
+            <div className="toolbar-head"><h3>Удалить товар</h3></div>
+            <div className="toolbar-controls" style={{ gridTemplateColumns: 'minmax(220px, 1fr) 220px' }}>
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  const selected = e.target.value
+                  if (!selected) return
+                  deleteProduct(Number(selected))
+                  e.target.value = ''
+                }}
+                disabled={adminLoading}
+              >
+                <option value="">Выберите товар для удаления</option>
+                {products.map((p) => <option key={p.id} value={p.id}>{p.name} (#{p.id})</option>)}
+              </select>
+              <p style={{ margin: 0, alignSelf: 'center' }}>Удаление выполняется сразу после выбора</p>
+            </div>
+          </div>
+
+          <div className="toolbar mvp-toolbar" style={{ marginTop: 16 }}>
+            <div className="toolbar-head"><h3>Заказы пользователей</h3></div>
+            {ordersWithItems.length === 0 ? (
+              <p>Пока нет оформленных заказов.</p>
+            ) : (
+              <div className="cart-items">
+                {ordersWithItems.map((order) => (
+                  <div className="cart-item" key={order.id}>
+                    <div className="cart-main">
+                      <strong>Заказ #{order.id}</strong>
+                      <p>Создан: {new Date(order.created_at).toLocaleString('ru-RU')}</p>
+                      {order.items.length === 0 ? (
+                        <p>Позиции заказа отсутствуют</p>
+                      ) : (
+                        order.items.map((item) => (
+                          <p key={item.id}>
+                            {item.product_name} × {item.total_products_in_order} = {Number(item.total_order_amount).toFixed(2)} ₽
+                          </p>
+                        ))
+                      )}
+                      <p><strong>Сумма заказа: {order.total.toFixed(2)} ₽</strong></p>
+                    </div>
+                    <div className="qty-actions">
+                      <button type="button" disabled={adminLoading} onClick={() => deleteOrder(order.id)}>
+                        Удалить заказ
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </section>
+      )}
+
+      {view === 'checkout' && (
+        <section className="cart-preview">
+          <button type="button" className="link-btn cart-back-btn" onClick={() => setView('cart')}>
+            ← Назад в корзину
+          </button>
+          <h2 className="cart-title">Оформление заказа</h2>
+          {checkoutDraftItems.length > 0 && (
+            <div className="cart-items">
+              {checkoutDraftItems.map((item) => (
+                <div className="cart-item" key={item.product_id}>
+                  <div className="cart-main">
+                    <strong>{item.name}</strong>
+                    <p>{item.price.toFixed(2)} ₽ / шт.</p>
+                    <p>Сумма позиции: {(item.price * item.quantity).toFixed(2)} ₽</p>
+                  </div>
+                  <div className="qty-actions">
+                    <button type="button" onClick={() => updateCheckoutItemQty(item.product_id, item.quantity - 1)}>-</button>
+                    <span>{item.quantity}</span>
+                    <button type="button" onClick={() => updateCheckoutItemQty(item.product_id, item.quantity + 1)}>+</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {checkoutDraftItems.length > 0 && (
+            <div className="cart-summary">
+              <p className="price big">Итого к оформлению: {checkoutTotalDraft.toFixed(2)} ₽</p>
+              <button type="button" onClick={submitCheckoutOrder} disabled={checkoutLoading}>
+                {checkoutLoading ? 'Оформляем...' : 'Подтвердить и оформить'}
+              </button>
+            </div>
+          )}
+          {checkoutSuccess ? (
+            <p>{checkoutSuccess}</p>
+          ) : (
+            <p>Проверьте состав заказа и подтвердите оформление.</p>
+          )}
+        </section>
+      )}
+
+      {view === 'admin' && !currentUser?.is_admin && (
+        <section className="cart-preview">
+          <button type="button" className="link-btn cart-back-btn" onClick={() => setView('catalog')}>
+            ← Назад к каталогу
+          </button>
+          <h2 className="cart-title">Доступ запрещён</h2>
+          <p>Админка доступна только пользователям с ролью администратора.</p>
         </section>
       )}
 
@@ -645,13 +1020,16 @@ function App() {
               <div className="cart-summary">
                 <p>Товаров: {cartCount}</p>
                 <p className="price big">Итого: {cartTotal.toFixed(2)} ₽</p>
+                <button type="button" onClick={openCheckoutPage} disabled={cartItems.length === 0}>
+                  К оформлению
+                </button>
               </div>
             </>
           )}
         </section>
       )}
 
-      {view !== 'cart' && view !== 'auth' && (
+      {view !== 'cart' && view !== 'auth' && view !== 'admin' && (
         <button
           type="button"
           className="floating-cart-btn"

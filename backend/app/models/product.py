@@ -21,5 +21,5 @@ class Product(Base):
     age = relationship('Age', back_populates='products')
     gender = relationship('Gender', back_populates='products')
     size = relationship('Size', back_populates='products')
-    prices = relationship('Price', back_populates='product')
-    products_in_orders = relationship('ProductInOrder', back_populates='product')
+    prices = relationship('Price', back_populates='product', cascade='all, delete-orphan')
+    products_in_orders = relationship('ProductInOrder', back_populates='product', cascade='all, delete-orphan')

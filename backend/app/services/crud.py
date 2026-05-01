@@ -27,3 +27,12 @@ class CRUDService(Generic[ModelT]):
 
     def create(self, payload) -> ModelT:
         return self.repository.create(payload.model_dump())
+
+    def delete(self, item_id: int) -> ModelT:
+        item = self.repository.delete(item_id)
+        if not item:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f'{self.entity_name} with id {item_id} not found',
+            )
+        return item

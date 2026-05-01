@@ -37,6 +37,11 @@ def _register_crud(entity: str, model, create_schema, response_schema):
         service = CRUDService(CRUDRepository(db, model), model.__name__)
         return service.create(payload)
 
+    @router.delete(f'/{entity}' + '/{item_id}', response_model=response_schema, status_code=status.HTTP_200_OK)
+    def delete_item(item_id: int, db: Session = Depends(get_db)):
+        service = CRUDService(CRUDRepository(db, model), model.__name__)
+        return service.delete(item_id)
+
 
 _register_crud('ages', Age, AgeCreate, AgeResponse)
 _register_crud('genders', Gender, GenderCreate, GenderResponse)

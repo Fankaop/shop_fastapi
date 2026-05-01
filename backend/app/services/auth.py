@@ -18,7 +18,12 @@ class AuthService:
                 detail='User with this email already exists',
             )
 
-        user = User(login=payload.login, phone=payload.phone, email=payload.email)
+        user = User(
+            login=payload.login,
+            phone=payload.phone,
+            email=payload.email,
+            is_admin=payload.is_admin,
+        )
         self.db.add(user)
         self.db.commit()
         self.db.refresh(user)

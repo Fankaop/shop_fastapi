@@ -6,6 +6,7 @@ class RegisterRequest(BaseModel):
     phone: str = Field(..., min_length=1, max_length=50)
     email: str = Field(..., min_length=3, max_length=255)
     password: str = Field(..., min_length=1, max_length=255)
+    is_admin: bool = False
 
 
 class LoginRequest(BaseModel):
@@ -18,6 +19,7 @@ class AuthUserResponse(BaseModel):
     login: str
     phone: str
     email: str
+    is_admin: bool
 
     class Config:
         from_attributes = True
