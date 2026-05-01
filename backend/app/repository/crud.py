@@ -23,3 +23,11 @@ class CRUDRepository(Generic[ModelT]):
         self.db.commit()
         self.db.refresh(obj)
         return obj
+
+    def delete(self, item_id: int) -> ModelT | None:
+        obj = self.get_by_id(item_id)
+        if obj is None:
+            return None
+        self.db.delete(obj)
+        self.db.commit()
+        return obj

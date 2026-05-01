@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Boolean, Column, Integer, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -11,6 +11,7 @@ class User(Base):
     login = Column(String(255), nullable=False)
     phone = Column(String(50), nullable=False)
     email = Column(String(255), nullable=False)
+    is_admin = Column(Boolean, nullable=False, default=False)
 
     addresses = relationship('Address', back_populates='user')
     passwords = relationship('Password', back_populates='user')
