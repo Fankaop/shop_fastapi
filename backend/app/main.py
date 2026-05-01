@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.responses import Response
 from fastapi.middleware.cors import CORSMiddleware
 from .config import settings
 from .database import init_db
@@ -35,3 +36,13 @@ def root():
 @app.get('/health')
 def health_check():
     return {'status': 'healthy'}
+
+
+@app.get('/apple-touch-icon.png', include_in_schema=False)
+def apple_touch_icon():
+    return Response(status_code=204)
+
+
+@app.get('/apple-touch-icon-precomposed.png', include_in_schema=False)
+def apple_touch_icon_precomposed():
+    return Response(status_code=204)
